@@ -1,0 +1,30 @@
+# dependencias
+node_modules
+
+# compilados
+.next
+out
+build
+*.tsbuildinfo
+
+# entorno (nunca subir claves)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# sistema
+.DS_Store
+Thumbs.db
+
+# pruebas
+coverage
+shots
+pw/shots
+
+# empaquetados
+*.zip

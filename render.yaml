@@ -1,0 +1,66 @@
+# ALTERNATIVA a Netlify. Si usas Supabase como base de datos, borra el bloque
+# `databases:` y cambia DATABASE_URL por la cadena del pooler de Supabase.
+#
+# Blueprint de Render: web (Docker) + PostgreSQL + cron diario.
+# 1) Crea el repo en GitHub y sube el proyecto.
+# 2) En Render: New > Blueprint > selecciona el repo.
+# 3) Rellena los secretos marcados como sync: false.
+services:
+  - type: web
+    name: vitrio
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /api/health
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vitrio-db
+          property: connectionString
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CRON_SECRET
+        generateValue: true
+      - key: BUSINESS_TIME_ZONE
+        value: Europe/Madrid
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: SEED_DEMO
+        value: "false"
+
+  - type: cron
+    name: vitrio-lifecycle
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    schedule: "0 4 * * *"
+    dockerCommand: node -e "fetch(process.env.APP_URL+'/api/cron/lifecycle',{headers:{'x-cron-secret':process.env.CRON_SECRET}}).then(r=>r.text()).then(t=>console.log(t))"
+    envVars:
+      - key: APP_URL
+        fromService:
+          type: web
+          name: vitrio
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: CRON_SECRET
+        fromService:
+          type: web
+          name: vitrio
+          envVarKey: CRON_SECRET
+
+databases:
+  - name: vitrio-db
+    plan: basic-256mb
+    region: frankfurt
+    postgresMajorVersion: "17"

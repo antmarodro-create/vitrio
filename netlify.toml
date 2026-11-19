@@ -1,0 +1,22 @@
+# Despliegue gratuito: Netlify (hosting + funciones) + PostgreSQL gratuito (Neon).
+# El plugin oficial de Next.js se instala solo; no hace falta declararlo.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# El cron diario (trial -> congelado -> borrado) lo lanza netlify/functions/lifecycle.mjs,
+# que declara su propio schedule (04:00 UTC).
+
+[dev]
+  command = "npm run dev"
+  targetPort = 3000
+  framework = "next"
