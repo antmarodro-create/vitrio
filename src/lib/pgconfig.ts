@@ -17,7 +17,14 @@ import fs from "node:fs";
 export type PgConnection = { connectionString: string; ssl?: { rejectUnauthorized: boolean; ca?: string } };
 
 export function pgConnection(rawUrl: string | undefined): PgConnection {
-  if (!rawUrl) return { connectionString: "" };
+  if (!rawUrl) {
+    // Antes se devolvia una cadena vacia y node-postgres intentaba conectar a
+    // localhost:5432 dentro de la function de Netlify, con un error opaco
+    // ("Failed query: select 1"). Mejor decirlo claro.
+    throw new Error(
+      "DATABASE_URL no esta definida. Anade la cadena de PostgreSQL/Supabase en las variables de entorno y vuelve a desplegar.",
+    );
+  }
 
   let mode = "require";
   let stripped = rawUrl;
