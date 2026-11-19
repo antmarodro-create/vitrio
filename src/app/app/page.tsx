@@ -8,6 +8,8 @@ import { addDays, formatDateTime, formatTime, todayInTz, zonedToUtc } from "@/li
 import { bookingLabel, usesPartySize } from "@/lib/booking";
 import { planHas } from "@/lib/plans";
 import { formatEUR } from "@/lib/money";
+import { publicUrl } from "@/lib/config";
+import { PublicLinkCard } from "@/components/public-link";
 
 export const metadata = { title: "Resumen" };
 export const dynamic = "force-dynamic";
@@ -94,6 +96,8 @@ export default async function TenantDashboard() {
           </Link>
         </div>
       </div>
+
+      <PublicLinkCard slug={tenant.slug} url={publicUrl(`/c/${tenant.slug}`)} />
 
       {pendingInbox > 0 ? (
         <Link

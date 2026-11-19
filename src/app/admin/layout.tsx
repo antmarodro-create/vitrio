@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { stripeMode } from "@/lib/config";
+import { StripeModeBanner } from "@/components/stripe-mode";
 import { requireSuperadmin } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/auth";
 import { btnGhost, btnSmall } from "@/components/ui";
@@ -43,6 +45,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
         </div>
       </header>
+      <StripeModeBanner mode={stripeMode()} />
+
       <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
     </div>
   );

@@ -6,6 +6,8 @@ import { requireTenant } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/auth";
 import { Badge, btnGhost, btnSmall } from "@/components/ui";
 import { planHas } from "@/lib/plans";
+import { stripeMode } from "@/lib/config";
+import { StripeModeBanner } from "@/components/stripe-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +110,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       ) : null}
+
+      <StripeModeBanner mode={stripeMode()} />
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         {user.mustChangePassword ? (

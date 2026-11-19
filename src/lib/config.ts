@@ -25,6 +25,14 @@ export function publicUrl(path = ""): string {
   return `${config.appUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+/** "test" mientras la clave sea sk_test_ (no se mueve dinero real). */
+export function stripeMode(): "test" | "live" | null {
+  const key = config.stripeSecret ?? "";
+  if (key.startsWith("sk_test_")) return "test";
+  if (key.startsWith("sk_live_")) return "live";
+  return null;
+}
+
 /** La app solo cobra si hay Stripe configurado. */
 export function stripeEnabled(): boolean {
   return Boolean(config.stripeSecret && config.stripeWebhookSecret);

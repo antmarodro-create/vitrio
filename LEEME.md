@@ -192,6 +192,7 @@ Comandos útiles:
 | `npm run db:demo` | solo el comercio demo (para usar después de crear el superadmin en `/setup`) |
 | `npm run smoke -- https://…` | test de humo contra el sitio desplegado (15 comprobaciones) |
 | `npm run demo:showroom` | carga los 3 comercios de demostración (uno por plan). Ver `SHOWROOM.md` |
+| `npm run stripe:check` | comprueba claves, Connect y webhook de Stripe. Ver `STRIPE.md` |
 
 `SEED_ADMIN=false` y `SEED_DEMO=false` permiten sembrar partes sueltas.
 
