@@ -3,6 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "./db";
 import { plans, products, tenants, type Plan, type Product, type Tenant } from "@/db/schema";
 import { maybeRunLifecycle } from "./lifecycle";
+import { memo } from "./cache";
 
 export type PublicTenant = {
   tenant: Tenant;
@@ -21,10 +22,18 @@ export async function getTenantById(id: string): Promise<Tenant | null> {
 /**
  * Carga un comercio para el catalogo publico. Un comercio congelado o borrado
  * no se muestra: el estado se valida siempre en servidor.
+ *
+ * El resultado se guarda 20 s en memoria del proceso: son 2 consultas por
+ * visita y el catálogo es igual para todos los visitantes. El panel del
+ * comercio NO usa esta función, así que sus cambios se ven al instante ahí;
+ * en la página pública tardan como mucho esos 20 s.
  */
 export async function getPublicTenant(slug: string): Promise<PublicTenant | null> {
   await maybeRunLifecycle();
+  return memo(`public-tenant:${slug}`, 20_000, () => loadPublicTenant(slug));
+}
 
+async function loadPublicTenant(slug: string): Promise<PublicTenant | null> {
   const rows = await db
     .select({ tenant: tenants, plan: plans })
     .from(tenants)

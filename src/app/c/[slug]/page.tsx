@@ -5,36 +5,32 @@ import { formatEUR } from "@/lib/money";
 import { planHas } from "@/lib/plans";
 import { bookingLabel } from "@/lib/booking";
 import { Empty, Eyebrow } from "@/components/ui";
+import { CatalogList } from "./catalog-list";
 
-export const dynamic = "force-dynamic";
+/**
+ * El catálogo se regenera como mucho una vez por minuto y se sirve desde el CDN
+ * de Netlify. Al filtrar en el navegador ya no depende de la URL, así que la
+ * misma página vale para todos los visitantes: es lo que evita el viaje a la
+ * base de datos en cada visita.
+ */
+export const revalidate = 60;
 
-export default async function PublicCatalog({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ q?: string; cat?: string }>;
-}) {
+export default async function PublicCatalog({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { q, cat } = await searchParams;
   const data = await getPublicTenant(slug);
   if (!data) notFound();
   const { tenant, plan, products, services } = data;
 
-  const search = (q ?? "").trim().toLowerCase();
-  const filtered = products.filter((p) => {
-    const matchesText =
-      !search || p.name.toLowerCase().includes(search) || (p.description ?? "").toLowerCase().includes(search);
-    const matchesCat = !cat || p.category === cat;
-    return matchesText && matchesCat;
-  });
-
-  const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[];
-  const grouped = new Map<string, typeof filtered>();
-  for (const product of filtered) {
-    const key = product.category ?? "Otros";
-    grouped.set(key, [...(grouped.get(key) ?? []), product]);
-  }
+  // Solo los campos que se pintan: las fotos se sirven por /api/img/<id>, así
+  // que el base64 no viaja al navegador dentro del HTML.
+  const catalog = products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    category: product.category,
+    priceCents: product.priceCents,
+    hasImage: Boolean(product.imageData),
+  }));
 
   const canReserve = tenant.bookingsEnabled && planHas(plan, "bookings");
   const canOrder = tenant.ordersEnabled && planHas(plan, "orders") && products.length > 0;
@@ -53,47 +49,7 @@ export default async function PublicCatalog({
         <Empty title="Carta en preparación" hint="Este comercio todavía no ha publicado artículos." />
       ) : null}
 
-      {/* --------------------------- buscador ---------------------------- */}
-      {products.length > 3 ? (
-        <form className="flex items-center gap-3 border-b border-ink-950/15 pb-2">
-          <input
-            name="q"
-            defaultValue={q ?? ""}
-            placeholder="Buscar en la carta"
-            className="w-full bg-transparent py-1.5 text-sm outline-none placeholder:text-ink-300"
-          />
-          <button className="eyebrow text-brand-700 hover:text-brand-600">Buscar</button>
-        </form>
-      ) : null}
-
-      {/* -------------------------- categorías --------------------------- */}
-      {categories.length > 1 ? (
-        <div className="-mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Link
-            href={`/c/${slug}${search ? `?q=${encodeURIComponent(search)}` : ""}`}
-            className={`eyebrow pb-0.5 ${
-              !cat ? "border-b border-ink-950 text-ink-950" : "text-ink-300 hover:text-ink-700"
-            }`}
-          >
-            Todo
-          </Link>
-          {categories.map((category) => (
-            <Link
-              key={category}
-              href={`/c/${slug}?cat=${encodeURIComponent(category)}${search ? `&q=${encodeURIComponent(search)}` : ""}`}
-              className={`eyebrow pb-0.5 ${
-                cat === category ? "border-b border-ink-950 text-ink-950" : "text-ink-300 hover:text-ink-700"
-              }`}
-            >
-              {category}
-            </Link>
-          ))}
-        </div>
-      ) : null}
-
-      {filtered.length === 0 && products.length > 0 ? (
-        <Empty title="Sin resultados" hint="Prueba con otra búsqueda o quita el filtro." />
-      ) : null}
+      <CatalogList slug={slug} products={catalog} canOrder={canOrder} />
 
       {/* --------------------------- servicios ---------------------------- */}
       {services.length > 0 && canReserve ? (
@@ -130,60 +86,6 @@ export default async function PublicCatalog({
           </ul>
         </section>
       ) : null}
-
-      {/* ---------------------------- la carta ---------------------------- */}
-      {[...grouped.entries()].map(([category, items]) => (
-        <section key={category} className="space-y-5">
-          <div className="flex items-baseline gap-3">
-            <h2 className="serif text-2xl">{category}</h2>
-            <span className="h-px flex-1 bg-ink-950/12" />
-            <span className="eyebrow-sm text-ink-300">{items.length}</span>
-          </div>
-
-          <ul className="space-y-6">
-            {items.map((product) => (
-              <li key={product.id} className="group">
-                <div className="flex gap-4">
-                  {product.imageData ? (
-                    <Link
-                      href={canOrder ? `/c/${slug}/encargo?add=${product.id}` : `/c/${slug}`}
-                      className="relative h-20 w-20 flex-none overflow-hidden bg-ink-900/5 sm:h-24 sm:w-24"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/api/img/${product.id}`}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                      />
-                    </Link>
-                  ) : null}
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-3">
-                      <h3 className="serif text-lg leading-snug">{product.name}</h3>
-                      <span className="leader" aria-hidden />
-                      <span className="whitespace-nowrap text-sm font-medium tabular-nums">
-                        {formatEUR(product.priceCents)}
-                      </span>
-                    </div>
-                    {product.description ? (
-                      <p className="mt-1 max-w-md text-[13px] leading-relaxed text-ink-500">{product.description}</p>
-                    ) : null}
-                    {canOrder ? (
-                      <Link
-                        href={`/c/${slug}/encargo?add=${product.id}`}
-                        className="eyebrow mt-2 inline-block text-brand-700 hover:text-brand-600"
-                      >
-                        Añadir al encargo
-                      </Link>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
 
       {/* ------------------------ invitación al plan ---------------------- */}
       {upsell.length > 0 ? (

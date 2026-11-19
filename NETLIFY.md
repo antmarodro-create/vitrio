@@ -335,3 +335,27 @@ La cadena contiene la contraseña de la base de datos en claro:
 - No la pongas nunca en una variable `NEXT_PUBLIC_*` ni la pegues en el navegador.
 - Si la filtras, resetea la contraseña en **Project Settings → Database → Reset database
   password** y actualiza Netlify.
+
+## Rendimiento: por qué el catálogo va cacheado
+
+En el plan gratuito las funciones corren **siempre en US East (Ohio)**; elegir región exige
+plan Pro ($20/mes). Si la base de datos está en Europa, cada consulta cruza el Atlántico
+(unos 100 ms por consulta) y una página con dos consultas tarda ~0,7 s en caliente y varios
+segundos en frío.
+
+Medidas que ya están en el código y no cuestan nada:
+
+- **La carta se regenera cada 60 s y se sirve desde el CDN** (`revalidate = 60` en
+  `/c/[slug]`). El buscador y los filtros de categoría funcionan **en el navegador**, así que
+  la página ya no depende de la URL y es idéntica para todos los visitantes.
+- **La ficha del comercio se guarda 20 s en memoria** del proceso (`src/lib/cache.ts`): dos
+  consultas menos por visita. El panel del comercio no usa esa caché, así que ahí los cambios
+  se ven al instante.
+- **El pool mantiene la conexión viva** (`keepAlive`, 30 s de inactividad) para no repetir el
+  saludo TLS en cada arranque en frío.
+
+Resultado medido con la base en Fráncfort y las funciones en Ohio: catálogo **13 ms** tras la
+primera visita (antes 750 ms).
+
+Si algún día hay comercios de pago, la opción correcta es **Netlify Pro con funciones en
+`eu-central-1`**: además de acelerar el panel, mantiene los datos de los clientes en la UE.

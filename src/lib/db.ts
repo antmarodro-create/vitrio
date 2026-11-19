@@ -21,7 +21,10 @@ function createPool(): Pool {
     // En serverless (Netlify) cada instancia mantiene su propio pool: conviene
     // un máximo bajo y la cadena "pooled" del proveedor (Supabase/Neon).
     max: Number(process.env.PG_POOL_MAX ?? (process.env.NETLIFY ? 3 : 10)),
-    idleTimeoutMillis: 10_000,
+    // Mantener la conexión viva evita repetir el TLS hasta la base de datos en
+    // cada arranque en frío de la función.
+    keepAlive: true,
+    idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
   });
 }

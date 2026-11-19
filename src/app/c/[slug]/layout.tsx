@@ -4,7 +4,8 @@ import { getPublicTenant } from "@/lib/public";
 import { planHas } from "@/lib/plans";
 import { bookingLabel } from "@/lib/booking";
 
-export const dynamic = "force-dynamic";
+// La cabecera y las pestañas dependen solo del comercio: se cachean con la carta.
+export const revalidate = 60;
 
 export default async function PublicLayout({
   children,
