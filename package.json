@@ -12,7 +12,8 @@
     "db:push": "drizzle-kit push --force",
     "seed": "tsx --env-file=.env src/db/seed.ts",
     "db:check": "node --env-file=.env scripts/check-db.mjs",
-    "db:demo": "SEED_ADMIN=false SEED_DEMO=true SEED_PLANS=false tsx --env-file=.env src/db/seed.ts"
+    "db:demo": "SEED_ADMIN=false SEED_DEMO=true SEED_PLANS=false tsx --env-file=.env src/db/seed.ts",
+    "smoke": "node scripts/smoke.mjs"
   },
   "keywords": [],
   "author": "",

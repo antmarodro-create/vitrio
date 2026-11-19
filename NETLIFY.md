@@ -77,6 +77,26 @@ npm run seed            # planes + superadmin + comercio demo (opcional fuera de
 Si prefieres no sembrar nada, salta el seed y crea el superadmin en `/setup` al entrar en la
 web: los planes por defecto se crean solos ahí.
 
+## Verificación post-despliegue (test de humo)
+
+Con el sitio ya publicado, desde tu máquina:
+
+```bash
+npm run smoke -- https://tu-sitio.netlify.app --slug=bar-la-plaza
+```
+
+Comprueba 15 cosas sin escribir nada en la base de datos: que la app responde, que **llega a
+Supabase** (y con qué latencia), portada, login, aviso legal, manifest PWA, el estado de
+`/setup`, que `/admin` y `/app` rebotan al login sin sesión, que **el cron rechaza peticiones
+sin secreto**, que el webhook de Stripe no acepta firmas falsas, el comercio público y su QR.
+Sale con código 1 si algo falla, así que sirve también para un despliegue automático.
+
+Para probar también el cron con el secreto:
+
+```bash
+SMOKE_SECRET="el-mismo-de-netlify" npm run smoke -- https://tu-sitio.netlify.app
+```
+
 ## 3. Conectar el repositorio a Netlify
 
 1. Sube el proyecto a GitHub (el `netlify.toml` ya está en la raíz).

@@ -190,6 +190,7 @@ Comandos útiles:
 | `npm run db:generate` | genera migración tras cambiar `schema.ts` |
 | `npm run seed` | planes + superadmin + comercio demo |
 | `npm run db:demo` | solo el comercio demo (para usar después de crear el superadmin en `/setup`) |
+| `npm run smoke -- https://…` | test de humo contra el sitio desplegado (15 comprobaciones) |
 
 `SEED_ADMIN=false` y `SEED_DEMO=false` permiten sembrar partes sueltas.
 

@@ -1,4 +1,4 @@
-# Despliegue gratuito: Netlify (hosting + funciones) + PostgreSQL gratuito (Neon).
+# Despliegue gratuito: Netlify (hosting + funciones) + Supabase (PostgreSQL gratuito).
 # El plugin oficial de Next.js se instala solo; no hace falta declararlo.
 
 [build]
