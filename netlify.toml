@@ -8,6 +8,10 @@
 [build.environment]
   NODE_VERSION = "22"
   NEXT_TELEMETRY_DISABLED = "1"
+  # El escaneo de secretos aborta el build cuando el VALOR de una variable aparece en el
+  # repositorio. Estas variables no son secretos (zona horaria, URL publica, metadatos):
+  # sin esta lista, BUSINESS_TIME_ZONE=Europe/Madrid hace fallar el deploy.
+  SECRETS_SCAN_OMIT_KEYS = "BUSINESS_TIME_ZONE,NEXT_PUBLIC_APP_URL,NEXT_TELEMETRY_DISABLED,NODE_VERSION"
 
 [functions]
   directory = "netlify/functions"
