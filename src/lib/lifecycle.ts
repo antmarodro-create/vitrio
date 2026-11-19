@@ -18,6 +18,7 @@ export type LifecycleReport = {
   warnings: number;
   expiredAppointments: number;
   expiredOrders: number;
+  stripeSynced?: number;
 };
 
 /**
@@ -201,6 +202,24 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
       target: appSettings.key,
       set: { value: { at: now.toISOString(), ...report }, updatedAt: now },
     });
+
+  // 6. Sincronizar cuentas conectadas de Stripe que aún no pueden cobrar: las
+  // cuentas v2 no envían webhook "account.updated", así que el estado se
+  // refresca aquí (como mucho 10 por pasada, para no castigar la latencia).
+  if (process.env.STRIPE_SECRET_KEY) {
+    const { refreshAccountStatus } = await import("./stripe");
+    const pendientes = await db
+      .select()
+      .from(tenants)
+      .where(and(eq(tenants.status, "active"), eq(tenants.stripeChargesEnabled, false), isNotNull(tenants.stripeAccountId)))
+      .limit(10);
+    let sincronizadas = 0;
+    for (const tenant of pendientes) {
+      const estado = await refreshAccountStatus(tenant);
+      if (estado.chargesEnabled) sincronizadas += 1;
+    }
+    report.stripeSynced = sincronizadas;
+  }
 
   return report;
 }

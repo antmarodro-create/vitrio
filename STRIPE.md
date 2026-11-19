@@ -5,6 +5,48 @@ Objetivo: que la señal de 15 € de la Bodega Lumière se pueda pagar de verdad
 Vitrio. En modo test no se mueve dinero real.
 
 
+
+## Cuentas conectadas v2 (lo que Stripe exige desde 2026)
+
+Si ves este error al pulsar «Conectar mi Stripe»:
+
+> You tried to create an Accounts v1 connected account using the legacy `type` field with your
+> platform as the losses collector.
+
+Es que Stripe ya no acepta `type: "express"` en plataformas nuevas: hay que usar **Accounts v2**.
+El código ya está migrado (`src/lib/stripe.ts`):
+
+```ts
+stripe.v2.core.accounts.create({
+  contact_email, display_name, dashboard: "express",
+  identity: { country: "es" },
+  configuration: {
+    merchant: { capabilities: { card_payments: { requested: true } } },
+    recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } },
+  },
+  defaults: {
+    currency: "eur",
+    locales: ["es-ES"],
+    // El comercio paga las comisiones de sus cobros; Stripe asume el riesgo de
+    // saldos negativos. Vitrio no responde de las deudas del comercio.
+    responsibilities: { fees_collector: "stripe", losses_collector: "stripe" },
+  },
+})
+```
+
+Y el alta se abre con `stripe.v2.core.accountLinks.create({ account, use_case: { type:
+"account_onboarding", account_onboarding: { refresh_url, return_url } } })`.
+
+**Consecuencias prácticas:**
+
+- La cuenta **puede cobrar** cuando `configuration.merchant.capabilities.card_payments.status`
+  es `active`. Antes de terminar el alta está en `restricted`.
+- Los eventos de cuentas v2 **no se pueden suscribir en un webhook endpoint** (`v2.core.account…`
+  se rechaza). Por eso el estado se sincroniza de forma activa: al volver del alta
+  (`?stripe=ok`), con el botón *Actualizar estado* y en el cron diario de las 04:00.
+- El webhook sigue escuchando `account.updated` para las cuentas antiguas creadas con la v1.
+
+
 ## Quién es quién: dos cuentas, y solo una cobra
 
 Es la duda más habitual al empezar con Connect. Hay **dos** cuentas de Stripe en juego:
@@ -101,7 +143,7 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 ## Paso 4 · Alta del comercio (cuenta Express)
 
 1. Entra en el panel con `lumiere@vitrio.app` / `demo1234`.
-2. **Ajustes → Cobros** → *Conectar Stripe*. Se crea la cuenta Express y te lleva a Stripe.
+2. **Ajustes → Cobros** → *Conectar Stripe*. Se crea la cuenta (v2, dashboard Express) y te lleva al formulario de Stripe.
 3. Rellena el formulario con **datos de prueba**:
 
 | Campo | Valor de test |

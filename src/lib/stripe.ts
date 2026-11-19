@@ -61,19 +61,24 @@ export async function ensureConnectAccount(
   if (tenant.stripeAccountId) return { ok: true, accountId: tenant.stripeAccountId };
 
   try {
-    const account = await stripe.accounts.create({
-      type: "express",
-      country: "ES",
-      email: tenant.ownerEmail ?? undefined,
-      business_type: "company",
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
+    // Accounts v2 (cuentas con riesgo gestionado por Stripe). La API v1 con
+    // type: "express" ya no se acepta en plataformas nuevas.
+    const account = await stripe.v2.core.accounts.create({
+      contact_email: tenant.ownerEmail ?? undefined,
+      display_name: tenant.name,
+      dashboard: "express",
+      identity: { country: "es" },
+      configuration: {
+        // Cobra sus ventas (cargo directo) y puede recibir transferencias.
+        merchant: { capabilities: { card_payments: { requested: true } } },
+        recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } },
       },
-      business_profile: {
-        name: tenant.name,
-        url: publicUrl(`/c/${tenant.slug}`),
-        product_description: "Catálogo, reservas y encargos online",
+      defaults: {
+        currency: "eur",
+        locales: ["es-ES" as never],
+        // El comercio asume las comisiones de sus cobros; Stripe asume el riesgo
+        // de saldos negativos. Vitrio nunca responde de las deudas del comercio.
+        responsibilities: { fees_collector: "stripe", losses_collector: "stripe" },
       },
       metadata: { tenantId: tenant.id, tenantSlug: tenant.slug },
     });
@@ -91,12 +96,12 @@ export async function ensureConnectAccount(
 
     return { ok: true, accountId: account.id };
   } catch (err) {
-    console.error("[stripe] no se pudo crear la cuenta conectada", err);
-    return { ok: false, error: "Stripe no ha permitido crear la cuenta. Revisa la configuración de Connect." };
+    const causa = err instanceof Error ? err.message : String(err);
+    console.error("[stripe] no se pudo crear la cuenta conectada:", causa);
+    return { ok: false, error: `Stripe no ha permitido crear la cuenta: ${causa}` };
   }
 }
 
-/** Enlace de alta/actualización de datos alojado por Stripe. */
 export async function createOnboardingLink(
   tenant: Tenant,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
@@ -107,12 +112,15 @@ export async function createOnboardingLink(
   if (!account.ok) return account;
 
   try {
-    const link = await stripe.accountLinks.create({
+    const link = await stripe.v2.core.accountLinks.create({
       account: account.accountId,
-      type: "account_onboarding",
-      refresh_url: publicUrl("/app/ajustes?stripe=reintentar"),
-      return_url: publicUrl("/app/ajustes?stripe=ok"),
-      collect: "eventually_due",
+      use_case: {
+        type: "account_onboarding",
+        account_onboarding: {
+          refresh_url: publicUrl("/app/ajustes?stripe=reintentar"),
+          return_url: publicUrl("/app/ajustes?stripe=ok"),
+        },
+      },
     });
     return { ok: true, url: link.url };
   } catch (err) {
@@ -122,29 +130,54 @@ export async function createOnboardingLink(
 }
 
 /** Sincroniza el estado real de la cuenta (tras volver del onboarding). */
-export async function refreshAccountStatus(
-  tenant: Tenant,
-): Promise<{ chargesEnabled: boolean; detailsSubmitted: boolean }> {
+type ConnectState = { chargesEnabled: boolean; detailsSubmitted: boolean };
+
+/**
+ * Lee el estado real de la cuenta conectada. Con cuentas v2 lo que importa es
+ * la capability de cobro: `active` significa que ya puede cobrar.
+ */
+async function readAccountState(stripe: Stripe, accountId: string): Promise<ConnectState> {
+  try {
+    const account = await stripe.v2.core.accounts.retrieve(accountId, {
+      include: ["configuration.merchant", "configuration.recipient", "requirements"],
+    });
+    const tarjeta = account.configuration?.merchant?.capabilities?.card_payments?.status ?? "restricted";
+    return {
+      chargesEnabled: tarjeta === "active",
+      detailsSubmitted: tarjeta === "active" || tarjeta === "pending",
+    };
+  } catch {
+    // Cuenta creada con la API v1 (anteriores a este cambio).
+    const account = await stripe.accounts.retrieve(accountId);
+    return {
+      chargesEnabled: Boolean(account.charges_enabled),
+      detailsSubmitted: Boolean(account.details_submitted),
+    };
+  }
+}
+
+export async function refreshAccountStatus(tenant: Tenant): Promise<ConnectState> {
   const stripe = getStripe();
   if (!stripe || !tenant.stripeAccountId) {
     return { chargesEnabled: false, detailsSubmitted: false };
   }
   try {
-    const account = await stripe.accounts.retrieve(tenant.stripeAccountId);
-    const chargesEnabled = Boolean(account.charges_enabled);
-    const detailsSubmitted = Boolean(account.details_submitted);
+    const estado = await readAccountState(stripe, tenant.stripeAccountId);
     await db
       .update(tenants)
-      .set({ stripeChargesEnabled: chargesEnabled, stripeDetailsSubmitted: detailsSubmitted, updatedAt: new Date() })
+      .set({
+        stripeChargesEnabled: estado.chargesEnabled,
+        stripeDetailsSubmitted: estado.detailsSubmitted,
+        updatedAt: new Date(),
+      })
       .where(eq(tenants.id, tenant.id));
-    return { chargesEnabled, detailsSubmitted };
+    return estado;
   } catch (err) {
     console.error("[stripe] no se pudo leer la cuenta conectada", err);
     return { chargesEnabled: false, detailsSubmitted: false };
   }
 }
 
-/** Estado legible para mostrar en el panel del comercio. */
 export type ConnectStatus = "sin_configurar" | "sin_cuenta" | "pendiente" | "activa";
 
 export function connectStatus(tenant: Tenant): ConnectStatus {

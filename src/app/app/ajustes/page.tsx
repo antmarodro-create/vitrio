@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { plans } from "@/db/schema";
+import { plans, tenants } from "@/db/schema";
 import { requireTenant } from "@/lib/auth";
 import { Alert, Badge, Card, CardBody, SectionTitle, btnBrand, btnGhost, btnSmall } from "@/components/ui";
 import { planHas } from "@/lib/plans";
-import { connectStatus, stripePlatformReady } from "@/lib/stripe";
+import { connectStatus, refreshAccountStatus, stripePlatformReady } from "@/lib/stripe";
 import { ProfileForm, SettingsForm } from "../forms";
 import { toggleModuleAction } from "../actions";
 import { connectStripeAction, refreshStripeAction, unlinkStripeAction } from "../cobros-actions";
@@ -51,8 +51,19 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ stripe?: string }>;
 }) {
-  const { tenant } = await requireTenant();
+  const { tenant: tenantBase } = await requireTenant();
   const { stripe: stripeParam } = await searchParams;
+
+  // Al volver del alta de Stripe se consulta el estado en el acto: las cuentas v2
+  // no envían webhook "account.updated", así que la sincronización es activa.
+  const tenant =
+    stripeParam === "ok" || stripeParam === "reintentar"
+      ? await (async () => {
+          await refreshAccountStatus(tenantBase);
+          const fila = await db.select().from(tenants).where(eq(tenants.id, tenantBase.id)).limit(1);
+          return fila[0] ?? tenantBase;
+        })()
+      : tenantBase;
   const plan = tenant.planId ? (await db.select().from(plans).where(eq(plans.id, tenant.planId)).limit(1))[0] ?? null : null;
 
   const canBook = planHas(plan, "bookings");
@@ -67,7 +78,7 @@ export default async function SettingsPage({
 
       {stripeParam === "ok" ? (
         <Alert tone="success">
-          Has vuelto de Stripe. Pulsa «Actualizar estado» para comprobar si tu cuenta ya puede cobrar.
+          Has vuelto de Stripe. Tu estado se ha comprobado ahora mismo: abajo ves si la cuenta ya puede cobrar.
         </Alert>
       ) : null}
       {stripeParam === "reintentar" ? (
