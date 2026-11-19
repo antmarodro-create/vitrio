@@ -191,8 +191,22 @@ Comandos útiles:
 | `npm run seed` | planes + superadmin + comercio demo |
 | `npm run db:demo` | solo el comercio demo (para usar después de crear el superadmin en `/setup`) |
 | `npm run smoke -- https://…` | test de humo contra el sitio desplegado (15 comprobaciones) |
+| `npm run demo:showroom` | carga los 3 comercios de demostración (uno por plan). Ver `SHOWROOM.md` |
 
 `SEED_ADMIN=false` y `SEED_DEMO=false` permiten sembrar partes sueltas.
+
+## Interfaz y diseño
+
+Sistema visual propio en `src/app/globals.css`: paleta editorial (marfil `#f6f1e8`, espresso
+`#14110d` y latón `#b3925c`), tipografía serif para titulares (`--font-display`, con pilas del
+sistema: no carga fuentes externas) y micro-etiquetas en versalitas con tracking amplio.
+Los componentes base están en `src/components/ui.tsx` (`Card`, `Eyebrow`, `Badge`, `Stat`,
+botones y campos). Los nombres antiguos de color (`ink`, `paper`, `brand`) se mantienen: al
+cambiar sus valores, todas las pantallas heredan el nuevo lenguaje sin reescribirlas.
+
+Pantallas rehechas con este lenguaje: portada, web pública del comercio
+(`/c/[slug]`), reserva, encargo, seguimiento (`/r/[code]`, `/p/[code]`), panel del comercio
+y bandeja de entrada.
 
 ## 9. Despliegue a coste 0
 

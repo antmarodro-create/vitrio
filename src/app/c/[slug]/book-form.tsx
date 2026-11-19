@@ -28,41 +28,55 @@ export function BookForm({
   const [state, action, pending] = useActionState(createBookingAction, initial);
 
   return (
-    <form action={action} className="space-y-4 rounded-2xl border border-black/10 bg-white p-4">
-      <div>
-        <p className="text-sm font-semibold">Confirma tu {label.toLowerCase()}</p>
-        <p className="text-xs text-ink-500">
-          {price}
-          {playingWithParty ? ` · ${partySize} ${partySize === 1 ? "persona" : "personas"}` : ""}
-        </p>
-      </div>
-      {state.error ? <Alert tone="error">{state.error}</Alert> : null}
+    <form action={action} className="border-t-2 border-ink-950 pt-6">
+      <p className="eyebrow-sm text-ink-300">Tus datos</p>
+      <h2 className="serif mt-2 text-2xl">
+        Confirma tu {label.toLowerCase()}
+        {playingWithParty ? ` · ${partySize} ${partySize === 1 ? "persona" : "personas"}` : ""}
+      </h2>
+      <p className="mt-1 text-[13px] text-ink-500">{price}</p>
+
+      {state.error ? (
+        <div className="mt-4">
+          <Alert tone="error">{state.error}</Alert>
+        </div>
+      ) : null}
+
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="startsAt" value={startsAt} />
       <input type="hidden" name="partySize" value={partySize} />
       {productId ? <input type="hidden" name="productId" value={productId} /> : null}
 
-      <Field label="Nombre">
-        <input className={inputClass} name="name" required autoComplete="name" placeholder="Tu nombre" />
-      </Field>
-      <Field label="Teléfono">
-        <input className={inputClass} name="phone" required autoComplete="tel" inputMode="tel" placeholder="600 000 000" />
-      </Field>
-      <Field label="Email (opcional)" hint="Para recibir el código y los avisos.">
-        <input className={inputClass} name="email" type="email" autoComplete="email" placeholder="tu@email.com" />
-      </Field>
-      <Field label="Notas (opcional)">
-        <textarea className={inputClass} name="notes" rows={2} placeholder="Alergias, carrito, etc." />
-      </Field>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <Field label="Nombre">
+          <input className={inputClass} name="name" required autoComplete="name" placeholder="Tu nombre" />
+        </Field>
+        <Field label="Teléfono">
+          <input className={inputClass} name="phone" required autoComplete="tel" inputMode="tel" placeholder="600 000 000" />
+        </Field>
+      </div>
+      <div className="mt-4">
+        <Field label="Email (opcional)" hint="Te enviamos el código y los avisos.">
+          <input className={inputClass} name="email" type="email" autoComplete="email" placeholder="tu@email.com" />
+        </Field>
+      </div>
+      <div className="mt-4">
+        <Field label="Notas (opcional)">
+          <textarea className={inputClass} name="notes" rows={2} placeholder="Alergias, carrito, mobiliario…" />
+        </Field>
+      </div>
 
-      {policy ? <p className="rounded-xl bg-black/[0.03] px-3 py-2 text-xs text-ink-500">{policy}</p> : null}
+      {policy ? <p className="mt-4 bg-ivory-deep/60 px-4 py-3 text-[11px] leading-relaxed text-ink-500">{policy}</p> : null}
 
       <button
-        className="w-full rounded-xl bg-ink-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        className="mt-5 w-full bg-ink-950 px-4 py-3.5 text-[13px] font-semibold tracking-wide text-ivory transition hover:bg-ink-900 disabled:opacity-60"
         disabled={pending}
       >
-        {pending ? "Reservando…" : "Confirmar reserva"}
+        {pending ? "Enviando…" : `Confirmar ${label.toLowerCase()}`}
       </button>
+      <p className="mt-3 text-center text-[11px] leading-relaxed text-ink-300">
+        Al confirmar, la solicitud llega al panel del comercio al instante y recibes un código de seguimiento.
+      </p>
     </form>
   );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { plans } from "@/db/schema";
+import { appointments, orders, plans } from "@/db/schema";
 import { requireTenant } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/auth";
 import { Badge, btnGhost, btnSmall } from "@/components/ui";
@@ -15,12 +15,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ? (await db.select().from(plans).where(eq(plans.id, tenant.planId)).limit(1))[0] ?? null
     : null;
 
+  const [pendingBookings, newOrders] = await Promise.all([
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(appointments)
+      .where(and(eq(appointments.tenantId, tenant.id), eq(appointments.status, "pending"))),
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenant.id), eq(orders.status, "new"))),
+  ]);
+  const pending = (pendingBookings[0]?.n ?? 0) + (newOrders[0]?.n ?? 0);
+
   const daysLeft = tenant.trialEndsAt
     ? Math.max(0, Math.ceil((tenant.trialEndsAt.getTime() - Date.now()) / 86_400_000))
     : null;
 
   const nav = [
     { href: "/app", label: "Resumen", show: true },
+    { href: "/app/bandeja", label: "Bandeja", show: true, badge: pending },
     { href: "/app/catalogo", label: "Catálogo", show: true },
     { href: "/app/servicios", label: "Servicios", show: planHas(plan, "bookings") },
     { href: "/app/reservas", label: "Reservas", show: planHas(plan, "bookings") },
@@ -68,9 +81,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
-                className="whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-700 hover:bg-black/5"
+                className="flex items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-2.5 py-1.5 text-[13px] font-medium text-ink-700 hover:border-ink-950/20 hover:text-ink-950"
               >
                 {item.label}
+                {"badge" in item && item.badge ? (
+                  <span className="grid h-4 min-w-4 place-items-center rounded-full bg-brand-600 px-1 text-[10px] font-semibold text-white">
+                    {item.badge}
+                  </span>
+                ) : null}
               </Link>
             ))}
           </nav>

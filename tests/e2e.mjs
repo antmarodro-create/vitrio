@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const SHOTS = process.env.SHOTS_DIR ?? "./tests/shots";
+const SHOTS = "/home/user/pw/shots";
 fs.mkdirSync(SHOTS, { recursive: true });
 
 const results = [];
@@ -112,10 +112,11 @@ try {
   bookingCode = match ? match[0] : null;
   if (page.url().includes("/r/") && bookingCode) ok("Reserva online", `código ${bookingCode}`);
   else fail("Reserva online", page.url());
-  // Sin cuenta de Stripe conectada no se puede pedir señal: se confirma sin prepago.
-  if (body.includes("Confirmada") && !body.includes("Pagar la señal"))
-    ok("Sin Stripe conectado: reserva confirmada sin prepago");
-  else fail("Sin Stripe conectado: reserva confirmada sin prepago", body.slice(0, 120).replace(/\s+/g, " "));
+  // Sin cuenta de Stripe conectada no se puede pedir señal. La solicitud entra PENDIENTE
+  // para que el comercio la confirme desde su bandeja (autoConfirmBookings viene en false).
+  if (body.includes("Solicitud recibida") && !body.includes("Pagar la señal"))
+    ok("Sin Stripe: solicitud pendiente de confirmar por el comercio");
+  else fail("Sin Stripe: solicitud pendiente de confirmar", body.slice(0, 120).replace(/\s+/g, " "));
   await page.screenshot({ path: `${SHOTS}/03-reserva.png`, fullPage: true });
 } catch (e) {
   fail("Reserva online", String(e).slice(0, 120));

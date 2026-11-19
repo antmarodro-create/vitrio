@@ -185,6 +185,14 @@ export default async function SettingsPage({
             disabledHint="Tu plan no incluye reservas."
           />
           <ToggleRow
+            title="Confirmar automáticamente"
+            description="Si lo activas, las reservas sin pago entran ya confirmadas y no pasan por la bandeja."
+            active={tenant.autoConfirmBookings}
+            module="autoconfirm"
+            disabled={!canBook}
+            disabledHint="Necesita el módulo de reservas."
+          />
+          <ToggleRow
             title="Encargos"
             description="Pedidos con recogida o entrega."
             active={tenant.ordersEnabled}

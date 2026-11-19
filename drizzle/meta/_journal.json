@@ -15,6 +15,20 @@
       "when": 1795078957529,
       "tag": "0001_connect_y_stripe_rate_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795085786257,
+      "tag": "0002_portada_y_frase",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795086176508,
+      "tag": "0003_confirmacion_manual",
+      "breakpoints": true
     }
   ]
 }

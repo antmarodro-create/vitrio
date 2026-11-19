@@ -4,12 +4,20 @@ import { getPublicTenant } from "@/lib/public";
 import { bookingDepositCents, bookingLabel, getDayAvailability, nextAvailableDays, usesPartySize } from "@/lib/booking";
 import { planHas } from "@/lib/plans";
 import { tenantCanCharge } from "@/lib/stripe";
-import { formatIsoDateShort, formatTime, todayInTz } from "@/lib/time";
+import { formatIsoDateShort, todayInTz } from "@/lib/time";
 import { formatEUR } from "@/lib/money";
-import { Alert, Empty } from "@/components/ui";
+import { Alert, Empty, Eyebrow } from "@/components/ui";
 import { BookForm } from "../book-form";
 
 export const dynamic = "force-dynamic";
+
+const WEEKDAY = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+
+function parts(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return { day: String(d).padStart(2, "0"), month: new Intl.DateTimeFormat("es-ES", { month: "short" }).format(new Date(Date.UTC(y, m - 1, d))), weekday: WEEKDAY[weekday] };
+}
 
 export default async function BookingPage({
   params,
@@ -30,8 +38,6 @@ export default async function BookingPage({
 
   const partyMode = usesPartySize(tenant);
   const partySize = Math.min(tenant.maxParty, Math.max(1, Number(sp.personas ?? (partyMode ? 2 : 1))));
-  // En bares la reserva por defecto es de mesa (sin servicio). En servicios/citas,
-  // el primer servicio es el punto de partida natural.
   const explicitService = sp.servicio === "" ? null : sp.servicio;
   const productId =
     explicitService && services.some((s) => s.id === explicitService)
@@ -47,18 +53,13 @@ export default async function BookingPage({
   const today = todayInTz(tenant.timezone);
   const isoDate = sp.fecha && days.includes(sp.fecha) ? sp.fecha : days[0] ?? today;
 
-  const { slots, reason } = await getDayAvailability({
-    tenant,
-    isoDate,
-    productId,
-    partySize,
-    plan,
-  });
+  const { slots, reason } = await getDayAvailability({ tenant, isoDate, productId, partySize, plan });
 
   const selected = sp.hora ? slots.find((s) => s.time === sp.hora && s.available) : null;
   const canCharge = planHas(plan, "payments") && tenantCanCharge(tenant);
   const deposit = canCharge ? bookingDepositCents(tenant, service, partySize) : 0;
   const label = bookingLabel(tenant);
+  const free = slots.filter((s) => s.available).length;
 
   const query = (extra: Record<string, string | undefined>) => {
     const qs = new URLSearchParams();
@@ -73,28 +74,30 @@ export default async function BookingPage({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-9">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">{label}</h1>
-        <p className="text-sm text-ink-500">
+        <Eyebrow>{label}</Eyebrow>
+        <h1 className="serif mt-3 text-3xl leading-tight sm:text-4xl">
+          {selected ? `Confirmar a las ${selected.time}` : "Elige día y hora"}
+        </h1>
+        <p className="mt-2 text-sm text-ink-500">
           {service
             ? `${service.name} · ${service.durationMinutes ?? tenant.durationMinutes} min`
             : partyMode
               ? `Mesas de hasta ${tenant.maxParty} personas`
               : `${tenant.durationMinutes} min por cita`}
+          {free > 0 ? ` · ${free} huecos libres` : ""}
         </p>
       </div>
 
       {services.length > 0 ? (
-        <div className="space-y-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Servicio</p>
-          <div className="flex flex-wrap gap-1.5">
+        <section>
+          <p className="eyebrow-sm text-ink-300">Servicio</p>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             {partyMode ? (
               <Link
                 href={query({ servicio: "", hora: undefined })}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                  !productId ? "bg-ink-950 text-white" : "bg-white text-ink-700 hover:bg-black/5"
-                }`}
+                className={`pb-0.5 text-[13px] ${!productId ? "border-b border-ink-950 text-ink-950" : "text-ink-500 hover:text-ink-900"}`}
               >
                 Solo mesa
               </Link>
@@ -103,70 +106,85 @@ export default async function BookingPage({
               <Link
                 key={s.id}
                 href={query({ servicio: s.id, hora: undefined })}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                  s.id === productId ? "bg-ink-950 text-white" : "bg-white text-ink-700 hover:bg-black/5"
+                className={`pb-0.5 text-[13px] ${
+                  s.id === productId ? "border-b border-ink-950 text-ink-950" : "text-ink-500 hover:text-ink-900"
                 }`}
               >
                 {s.name} · {formatEUR(s.priceCents)}
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       ) : null}
 
       {partyMode ? (
-        <div className="space-y-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Personas</p>
-          <div className="flex flex-wrap gap-1.5">
+        <section>
+          <p className="eyebrow-sm text-ink-300">Comensales</p>
+          <div className="mt-3 flex flex-wrap gap-2">
             {Array.from({ length: Math.min(tenant.maxParty, 12) }, (_, i) => i + 1).map((n) => (
               <Link
                 key={n}
                 href={query({ personas: String(n), hora: undefined })}
-                className={`h-9 w-9 rounded-full text-center text-sm font-semibold leading-9 ${
-                  n === partySize ? "bg-ink-950 text-white" : "bg-white text-ink-700 hover:bg-black/5"
+                className={`grid h-10 w-10 place-items-center border text-sm tabular-nums ${
+                  n === partySize
+                    ? "border-ink-950 bg-ink-950 text-ivory"
+                    : "border-ink-950/15 text-ink-700 hover:border-ink-950/40"
                 }`}
               >
                 {n}
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       ) : null}
 
-      <div className="space-y-1.5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Día</p>
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
-          {days.map((day) => (
-            <Link
-              key={day}
-              href={query({ fecha: day, hora: undefined })}
-              className={`whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium ${
-                day === isoDate ? "bg-ink-950 text-white" : "bg-white text-ink-700 hover:bg-black/5"
-              }`}
-            >
-              {formatIsoDateShort(day, tenant.timezone)}
-            </Link>
-          ))}
+      <section>
+        <p className="eyebrow-sm text-ink-300">Día</p>
+        <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
+          {days.map((day) => {
+            const p = parts(day);
+            const active = day === isoDate;
+            return (
+              <Link
+                key={day}
+                href={query({ fecha: day, hora: undefined })}
+                className={`w-[62px] flex-none border py-2.5 text-center transition ${
+                  active ? "border-ink-950 bg-ink-950 text-ivory" : "border-ink-950/15 hover:border-ink-950/40"
+                }`}
+              >
+                <span className="eyebrow-sm block opacity-60">{p.weekday}</span>
+                <span className="serif mt-0.5 block text-xl leading-none">{p.day}</span>
+                <span className="block text-[10px] uppercase tracking-widest opacity-60">{p.month}</span>
+              </Link>
+            );
+          })}
         </div>
-      </div>
+      </section>
 
-      <div className="space-y-1.5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Hora</p>
+      <section>
+        <div className="flex items-baseline justify-between">
+          <p className="eyebrow-sm text-ink-300">Hora</p>
+          <p className="text-[111x] text-ink-300" style={{ fontSize: 11 }}>
+            {formatIsoDateShort(isoDate, tenant.timezone)}
+          </p>
+        </div>
         {slots.length === 0 ? (
-          <Alert tone="warn">{reason ?? "No quedan huecos ese día. Prueba otro."}</Alert>
+          <div className="mt-3">
+            <Alert tone="warn">{reason ?? "No quedan huecos ese día. Prueba otro."}</Alert>
+          </div>
         ) : (
-          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+          <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6">
             {slots.map((slot) => (
               <Link
                 key={slot.startIso}
                 href={slot.available ? query({ hora: slot.time }) : query({ fecha: isoDate, hora: undefined })}
                 aria-disabled={!slot.available}
-                className={`rounded-xl py-2 text-center text-sm font-medium ${
+                className={`border py-2.5 text-center text-sm tabular-nums transition ${
                   selected?.time === slot.time
-                    ? "bg-brand-600 text-white"
+                    ? "border-brand-600 bg-brand-600 text-white"
                     : slot.available
-                      ? "bg-white text-ink-900 hover:bg-brand-50"
-                      : "cursor-not-allowed bg-black/[0.03] text-ink-300 line-through"
+                      ? "border-ink-950/15 hover:border-ink-950/40"
+                      : "cursor-not-allowed border-transparent bg-ink-950/[0.03] text-ink-300 line-through"
                 }`}
               >
                 {slot.time}
@@ -174,7 +192,7 @@ export default async function BookingPage({
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       {selected ? (
         <BookForm
@@ -194,8 +212,8 @@ export default async function BookingPage({
           }
         />
       ) : (
-        <p className="text-center text-sm text-ink-500">
-          {slots.length ? `Elige una hora para el ${formatTime(new Date(slots[0].startIso), tenant.timezone)} en adelante.` : ""}
+        <p className="border-t border-ink-950/10 pt-6 text-center text-sm text-ink-500">
+          {slots.length ? "Elige una hora para continuar." : ""}
         </p>
       )}
     </div>

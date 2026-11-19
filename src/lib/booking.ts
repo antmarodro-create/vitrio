@@ -290,7 +290,9 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
           partySize,
           startsAt,
           endsAt,
-          status: requiresPayment ? "pending" : "confirmed",
+          // Por defecto la solicitud llega PENDIENTE: el comercio confirma desde su bandeja.
+          // Solo se confirma sola si el comercio lo ha pedido expresamente y no hay pago.
+          status: requiresPayment || !tenant.autoConfirmBookings ? "pending" : "confirmed",
           source: input.source ?? "online",
           code: publicCode(),
           depositCents,
@@ -303,7 +305,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
       await tx.insert(events).values({
         tenantId: tenant.id,
         type: "booking_created",
-        meta: { id: row.id, partySize, requiresPayment, source: row.source },
+        meta: { id: row.id, code: row.code, partySize, requiresPayment, source: row.source },
       });
       return row;
     });

@@ -29,6 +29,7 @@ export const BUSINESS_TYPES = {
   beauty: { label: "Belleza / peluquería", bookingLabel: "Cita", usesParty: false },
   fashion: { label: "Moda / tienda", bookingLabel: "Cita", usesParty: false },
   services: { label: "Servicios", bookingLabel: "Cita", usesParty: false },
+  shop: { label: "Tienda / obrador", bookingLabel: "Recogida", usesParty: false },
 } as const;
 
 export type BusinessType = keyof typeof BUSINESS_TYPES;

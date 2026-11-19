@@ -24,7 +24,7 @@ export default async function SetupPage() {
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Primera puesta en marcha</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Crea la cuenta de administración</h1>
+        <h1 className="serif mt-1 text-3xl leading-tight">Crea la cuenta de administración</h1>
         <p className="mt-1 text-sm text-ink-500">
           Este formulario solo aparece mientras no exista ningún usuario. El superadmin da de alta los comercios;
           no hay registro público.

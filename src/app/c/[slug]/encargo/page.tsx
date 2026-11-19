@@ -37,7 +37,7 @@ export default async function OrderPage({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Hacer encargo</h1>
+        <h1 className="serif text-2xl leading-tight">Hacer encargo</h1>
         <p className="text-sm text-ink-500">
           Elige productos y la hora. {requiresPayment ? "El pago se hace al confirmar." : "El pago se hace al recoger."}
         </p>

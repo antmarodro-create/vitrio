@@ -14,6 +14,9 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   if (type === "logo") {
     const rows = await db.select({ logoData: tenants.logoData }).from(tenants).where(eq(tenants.id, id)).limit(1);
     dataUrl = rows[0]?.logoData ?? null;
+  } else if (type === "cover") {
+    const rows = await db.select({ coverData: tenants.coverData }).from(tenants).where(eq(tenants.id, id)).limit(1);
+    dataUrl = rows[0]?.coverData ?? null;
   } else {
     const rows = await db.select({ imageData: products.imageData }).from(products).where(eq(products.id, id)).limit(1);
     dataUrl = rows[0]?.imageData ?? null;

@@ -66,6 +66,7 @@ export default async function TenantDashboard() {
 
   const guests = todayBookings.reduce((acc, a) => acc + (usesPartySize(tenant) ? a.partySize : 1), 0);
   const productCount = counts[0]?.n ?? 0;
+  const pendingInbox = todayBookings.length + openOrders.length;
 
   const checklist = [
     { done: productCount > 0, label: "Añade tu primer producto o servicio", href: "/app/catalogo" },
@@ -79,7 +80,7 @@ export default async function TenantDashboard() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Hola, {tenant.name}</h1>
+          <h1 className="serif text-3xl leading-tight">Hola, {tenant.name}</h1>
           <p className="mt-1 text-sm text-ink-500">
             Tu catálogo público: <code className="rounded bg-black/5 px-1.5 py-0.5 text-xs">/c/{tenant.slug}</code>
           </p>
@@ -93,6 +94,26 @@ export default async function TenantDashboard() {
           </Link>
         </div>
       </div>
+
+      {pendingInbox > 0 ? (
+        <Link
+          href="/app/bandeja"
+          className="flex flex-wrap items-center justify-between gap-3 border border-brand-500/40 bg-brand-50/70 px-5 py-4 transition hover:bg-brand-50"
+        >
+          <span className="flex items-center gap-3">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-brand-600 text-xs font-semibold text-white">
+              {pendingInbox}
+            </span>
+            <span className="text-sm">
+              <strong className="font-semibold">
+                {pendingInbox === 1 ? "1 mensaje espera" : `${pendingInbox} mensajes esperan`} tu respuesta
+              </strong>
+              <span className="ml-1.5 text-ink-500">Reservas y encargos entrantes</span>
+            </span>
+          </span>
+          <span className="eyebrow text-brand-700">Abrir bandeja →</span>
+        </Link>
+      ) : null}
 
       {pendingSteps.length > 0 ? (
         <Card>

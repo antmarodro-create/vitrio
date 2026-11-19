@@ -69,7 +69,7 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Resumen</h1>
+        <h1 className="serif text-3xl leading-tight">Resumen</h1>
         <p className="mt-1 text-sm text-ink-500">
           Estado de la cartera. Los cobros de suscripción son manuales: «activar» aquí es lo que pone el comercio en
           producción.

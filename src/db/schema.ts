@@ -50,6 +50,10 @@ export const tenants = pgTable(
     address: text("address"),
     city: text("city"),
     logoData: text("logo_data"),
+    /** foto de portada de la web publica (data URL) */
+    coverData: text("cover_data"),
+    /** frase corta bajo el nombre en la portada publica */
+    tagline: text("tagline"),
     primaryColor: text("primary_color").notNull().default("#111827"),
     timezone: text("timezone").notNull().default("Europe/Madrid"),
 
@@ -63,6 +67,8 @@ export const tenants = pgTable(
     activationRequestedAt: timestamp("activation_requested_at", { withTimezone: true }),
 
     bookingsEnabled: boolean("bookings_enabled").notNull().default(false),
+    /** true = las reservas online se confirman solas; false = el comercio confirma */
+    autoConfirmBookings: boolean("auto_confirm_bookings").notNull().default(false),
     ordersEnabled: boolean("orders_enabled").notNull().default(false),
 
     /** { "0": [["12:00","16:00"]], "1": [...], ... } 0 = domingo */

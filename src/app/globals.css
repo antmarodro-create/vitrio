@@ -1,18 +1,40 @@
 @import "tailwindcss";
 
+/*
+ * Vitrio · sistema visual
+ * Paleta editorial de lujo: marfil cálido, negro espresso y latón.
+ * Los nombres antiguos (ink/paper/brand) se conservan para que las pantallas
+ * ya escritas hereden el nuevo lenguaje sin reescribirlas una por una.
+ */
 @theme {
-  --color-ink-950: #0a0f12;
-  --color-ink-900: #12181d;
-  --color-ink-700: #2b3641;
-  --color-ink-500: #5b6b7a;
-  --color-ink-300: #a8b5c0;
-  --color-paper: #f7f6f3;
-  --color-brand-50: #ecfdf7;
-  --color-brand-100: #d1fae5;
-  --color-brand-500: #10b981;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-paper: #f6f1e8;
+  --color-ivory: #f6f1e8;
+  --color-ivory-deep: #efe6d6;
+  --color-sand: #e8dcc8;
+
+  --color-ink-950: #14110d;
+  --color-ink-900: #1d1a15;
+  --color-ink-700: #3d362c;
+  --color-ink-500: #6b6255;
+  --color-ink-300: #a79c89;
+
+  --color-brand-50: #f4ecdd;
+  --color-brand-100: #e8dac1;
+  --color-brand-500: #b3925c;
+  --color-brand-600: #8b6b3a;
+  --color-brand-700: #6e5330;
+
+  --color-brass: #b3925c;
+  --color-brass-light: #d9c39b;
+  --color-forest: #22392e;
+  --color-clay: #7c3f31;
+  --color-plum: #4a2b3a;
+
+  --font-sans: "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial,
+    sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", "Hoefler Text",
+    ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 html,
@@ -24,6 +46,110 @@ body {
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-brass);
+  color: #fff;
+}
+
+/* ------------------------------- tipografía ------------------------------- */
+
+.serif {
+  font-family: var(--font-display);
+  font-feature-settings: "liga" 1, "dlig" 1;
+  letter-spacing: -0.015em;
+}
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.eyebrow-sm {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+/* -------------------------------- estructura ------------------------------- */
+
+.hairline {
+  border-color: color-mix(in srgb, var(--color-ink-950) 12%, transparent);
+}
+
+.rule {
+  height: 1px;
+  border: 0;
+  background: color-mix(in srgb, var(--color-ink-950) 14%, transparent);
+}
+
+/* Fila de carta clásica: nombre ......... precio */
+.leader {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.leader::after {
+  content: "";
+  flex: 1 1 auto;
+  order: 2;
+  min-width: 1.5rem;
+  border-bottom: 1px dotted color-mix(in srgb, var(--color-ink-950) 26%, transparent);
+  transform: translateY(-0.25em);
+}
+
+/* Textura de papel muy ligera, sin imágenes externas */
+.paper-grain {
+  background-image:
+    radial-gradient(at 8% 4%, rgba(179, 146, 92, 0.07) 0, transparent 55%),
+    radial-gradient(at 92% 0%, rgba(34, 57, 46, 0.05) 0, transparent 45%),
+    radial-gradient(at 50% 100%, rgba(20, 17, 13, 0.04) 0, transparent 60%);
+}
+
+.trim {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+}
+
+/* -------------------------------- animación -------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.rise-1 {
+  animation-delay: 0.08s;
+}
+.rise-2 {
+  animation-delay: 0.16s;
+}
+.rise-3 {
+  animation-delay: 0.24s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .rise-1,
+  .rise-2,
+  .rise-3 {
+    animation: none;
+  }
 }
 
 @media print {

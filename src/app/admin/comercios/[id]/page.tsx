@@ -53,7 +53,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
           <Link href="/admin/comercios" className="text-xs text-ink-500 hover:text-ink-950">
             ← Comercios
           </Link>
-          <h1 className="mt-1 flex items-center gap-3 text-2xl font-semibold tracking-tight">
+          <h1 className="serif mt-1 flex items-center gap-3 text-3xl leading-tight">
             {tenant.name}
             <Badge tone={statusTone[tenant.status] ?? "neutral"}>{statusLabel[tenant.status] ?? tenant.status}</Badge>
           </h1>

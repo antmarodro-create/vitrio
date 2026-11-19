@@ -1,0 +1,1 @@
+ALTER TABLE "tenants" ADD COLUMN "auto_confirm_bookings" boolean DEFAULT false NOT NULL;

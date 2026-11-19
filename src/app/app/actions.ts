@@ -33,8 +33,8 @@ function featureError(): AppState {
 
 /* -------------------------------- productos ------------------------------- */
 
-function readImage(formData: FormData): Promise<string | null> {
-  const file = formData.get("image");
+function readImage(formData: FormData, field = "image"): Promise<string | null> {
+  const file = formData.get(field);
   if (!file || typeof file === "string") return Promise.resolve(null);
   if (file.size === 0) return Promise.resolve(null);
   if (file.size > 2_500_000) return Promise.reject(new Error("IMG"));
@@ -201,6 +201,13 @@ export async function toggleModuleAction(formData: FormData): Promise<void> {
     if (!planHas(plan, "orders")) return;
     await db.update(tenants).set({ ordersEnabled: !tenant.ordersEnabled, updatedAt: now }).where(eq(tenants.id, tenant.id));
   }
+  if (module === "autoconfirm") {
+    if (!planHas(plan, "bookings")) return;
+    await db
+      .update(tenants)
+      .set({ autoConfirmBookings: !tenant.autoConfirmBookings, updatedAt: now })
+      .where(eq(tenants.id, tenant.id));
+  }
   if (module === "card") {
     await db
       .update(tenants)
@@ -223,10 +230,12 @@ export async function saveProfileAction(_prev: AppState, formData: FormData): Pr
   if (name.length < 2) return { error: "El nombre es obligatorio." };
 
   let logoData: string | null = null;
+  let coverData: string | null = null;
   try {
-    logoData = await readImage(formData);
+    logoData = await readImage(formData, "image");
+    coverData = await readImage(formData, "cover");
   } catch {
-    return { error: "El logo debe ser JPG, PNG o WebP de menos de 2,5 MB." };
+    return { error: "El logo y la portada deben ser JPG, PNG o WebP de menos de 2,5 MB." };
   }
 
   await db
@@ -238,7 +247,9 @@ export async function saveProfileAction(_prev: AppState, formData: FormData): Pr
       primaryColor: /^#[0-9a-fA-F]{6}$/.test(String(formData.get("primaryColor") ?? ""))
         ? String(formData.get("primaryColor"))
         : tenant.primaryColor,
+      tagline: String(formData.get("tagline") ?? "").trim().slice(0, 120) || null,
       ...(logoData ? { logoData } : {}),
+      ...(coverData ? { coverData } : {}),
       updatedAt: new Date(),
     })
     .where(eq(tenants.id, tenant.id));
@@ -273,7 +284,14 @@ export async function setBookingStatusAction(formData: FormData): Promise<void> 
   }
 
   await db.update(appointments).set({ status, updatedAt: new Date() }).where(eq(appointments.id, id));
+  await db.insert(events).values({
+    tenantId: tenant.id,
+    type: `booking_${status}`,
+    meta: { id, code: rows[0].code, customer: rows[0].customerName },
+  });
   revalidatePath("/app/reservas");
+  revalidatePath("/app/bandeja");
+  revalidatePath(`/r/${rows[0].code}`);
 }
 
 export async function setOrderStatusAction(formData: FormData): Promise<void> {
@@ -282,11 +300,24 @@ export async function setOrderStatusAction(formData: FormData): Promise<void> {
   const status = String(formData.get("status") ?? "");
   if (!ORDER_STATUSES.includes(status)) return;
 
+  const current = await db
+    .select({ code: orders.code, customerName: orders.customerName })
+    .from(orders)
+    .where(and(eq(orders.id, id), eq(orders.tenantId, tenant.id)))
+    .limit(1);
+
   await db
     .update(orders)
     .set({ status, updatedAt: new Date() })
     .where(and(eq(orders.id, id), eq(orders.tenantId, tenant.id)));
+
+  await db.insert(events).values({
+    tenantId: tenant.id,
+    type: `order_${status}`,
+    meta: { id, code: current[0]?.code ?? null, customer: current[0]?.customerName ?? null },
+  });
   revalidatePath("/app/encargos");
+  revalidatePath("/app/bandeja");
 }
 
 /** Cita manual creada por el comercio (teléfono, mostrador). */
