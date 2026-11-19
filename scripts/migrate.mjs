@@ -10,6 +10,12 @@
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
+
+try {
+  process.loadEnvFile(".env");
+} catch {
+  /* sin .env */
+}
 import path from "node:path";
 import pg from "pg";
 

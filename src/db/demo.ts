@@ -19,6 +19,7 @@ import { ensureDefaultPlans } from "@/lib/bootstrap";
 import { hashPassword } from "@/lib/password";
 import { zonedToUtc } from "@/lib/time";
 import { appointments, events, orderItems, orders, plans, products, tenants, users } from "@/db/schema";
+import { loadEnv } from "@/lib/load-env";
 
 const TZ = "Europe/Madrid";
 const DEMO_PASSWORD = "demo1234";
@@ -576,6 +577,7 @@ async function seedDemo(demo: Demo, planId: string) {
   return { tenant, products: inserted.length };
 }
 
+loadEnv();
 async function main() {
   await ensureDefaultPlans();
   const planRows = await db.select().from(plans);

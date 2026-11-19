@@ -3,7 +3,9 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { pgConnection } from "@/lib/pgconfig";
+import { loadEnv } from "@/lib/load-env";
 
+loadEnv();
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL no esta definida");

@@ -10,6 +10,12 @@
  */
 import Stripe from "stripe";
 
+try {
+  process.loadEnvFile(".env");
+} catch {
+  /* sin .env: se usan las variables del entorno */
+}
+
 const key = (process.env.STRIPE_SECRET_KEY ?? "").trim();
 const webhookSecret = (process.env.STRIPE_WEBHOOK_SECRET ?? "").trim();
 let failures = 0;

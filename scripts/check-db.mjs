@@ -8,6 +8,13 @@
 import fs from "node:fs";
 import pg from "pg";
 
+// Carga .env si existe (en un clon nuevo puede no estar: no debe romper)
+try {
+  process.loadEnvFile(".env");
+} catch {
+  /* sin .env: se usan las variables del entorno */
+}
+
 const raw = process.env.DATABASE_URL;
 if (!raw) {
   console.error("✗ Falta DATABASE_URL");

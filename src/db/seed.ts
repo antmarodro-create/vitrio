@@ -7,7 +7,9 @@ import { hashPassword } from "@/lib/password";
 import { DEFAULT_PLANS } from "@/lib/plans";
 import { defaultHours } from "@/lib/time";
 import { pgConnection } from "@/lib/pgconfig";
+import { loadEnv } from "@/lib/load-env";
 
+loadEnv();
 const pool = new Pool({ ...pgConnection(process.env.DATABASE_URL), max: 1 });
 const db = drizzle(pool, { schema });
 
