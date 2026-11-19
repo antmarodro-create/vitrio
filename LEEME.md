@@ -1,5 +1,8 @@
 # Vitrio
 
+> **¿Empezando de cero?** Lee `EMPEZAR.md`: instalar, migrar, sembrar y desplegar en 5 minutos.
+
+
 SaaS de catálogo, reservas y encargos para comercios locales (bares, belleza, moda y servicios).
 Cada comercio recibe un catálogo público con QR, agenda de reservas y encargos, y paga una
 suscripción mensual o anual. **No hay auto-registro**: el superadmin da de alta los comercios.

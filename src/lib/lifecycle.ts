@@ -25,6 +25,8 @@ export type LifecycleReport = {
  * Se llama desde getSession y desde el catalogo publico, ademas del cron externo.
  */
 export async function maybeRunLifecycle(): Promise<void> {
+  // Sin base de datos configurada no hay nada que hacer (build estático, CLI, tests).
+  if (!process.env.DATABASE_URL) return;
   const now = Date.now();
   if (globalForLifecycle.__vitrioLastRun && now - globalForLifecycle.__vitrioLastRun < MIN_INTERVAL_MS) {
     return;
