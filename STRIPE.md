@@ -4,6 +4,40 @@ Objetivo: que la señal de 15 € de la Bodega Lumière se pueda pagar de verdad
 `4242 4242 4242 4242` y que el dinero aparezca **en la cuenta del comercio**, no en la de
 Vitrio. En modo test no se mueve dinero real.
 
+
+## Quién es quién: dos cuentas, y solo una cobra
+
+Es la duda más habitual al empezar con Connect. Hay **dos** cuentas de Stripe en juego:
+
+| | Cuenta de plataforma | Cuenta conectada |
+|---|---|---|
+| De quién es | De Vitrio (tuya) | De cada comercio |
+| Para qué sirve | Crear sesiones de pago y recibir webhooks | Recibir el dinero de sus ventas |
+| Quién la abre | Tú, en stripe.com | Tu código, con una llamada a la API |
+| Qué datos pide | En test, ninguno. En live, identificación de la plataforma | NIF, IBAN, teléfono: los rellena el comercio en un formulario |
+| Saldo por una reserva | 0 € | El importe íntegro, menos la comisión de Stripe |
+| Aparece en el extracto del cliente | No | Sí: el nombre del comercio |
+
+El código usa **cargo directo**:
+
+```ts
+stripe.checkout.sessions.create({ ... }, { stripeAccount: tenant.stripeAccountId })
+```
+
+La sesión se crea *en la cuenta del comercio*, y no se envía `application_fee_amount`, así que la
+plataforma no retiene nada. Las comisiones de Stripe (1,5 % + 0,25 € en tarjetas europeas) las
+asume el comercio. El comercio es el vendedor y quien factura; Vitrio es el software.
+
+**No existe la opción de no tener cuenta de plataforma**: la clave `sk_…` con la que se crean los
+pagos es siempre de una cuenta. Lo que sí es cierto es que esa cuenta no cobra nada de las
+reservas, y que en modo test no necesita ninguna verificación.
+
+Solo entraría dinero en la cuenta de plataforma si algún día:
+
+- se cobra la **cuota mensual** de Vitrio con Stripe Billing (ese dinero sí es tuyo), o
+- se añade una **comisión por venta** con `application_fee_amount` (hoy está a 0 por decisión
+  de producto: «sin comisiones por venta» es una promesa de la web).
+
 ## Las tres piezas
 
 | Pieza | Dónde se configura | Variable |
